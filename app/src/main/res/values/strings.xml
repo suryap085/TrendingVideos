@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Trending Videos</string>
+    <string name="action_recycler_view">RecyclerView</string>
+
+</resources>

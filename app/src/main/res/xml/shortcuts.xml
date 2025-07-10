@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search_videos"
+        android:enabled="true"
+        android:icon="@drawable/ic_search"
+        android:shortcutShortLabel="@string/search_videos"
+        android:shortcutLongLabel="@string/search_trending_videos">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.surya.videos.TrendingVideos"
+            android:targetClass="com.surya.videos.TrendingVideos.SearchVideos.SearchActivity" />
+    </shortcut>
+</shortcuts>

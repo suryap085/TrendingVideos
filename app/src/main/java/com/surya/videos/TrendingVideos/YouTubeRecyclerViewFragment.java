@@ -2,10 +2,10 @@ package com.surya.videos.TrendingVideos;
 
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,7 +16,7 @@ import android.widget.Spinner;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.Video;
-import com.squareup.picasso.Picasso;
+import com.bumptech.glide.Glide;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -108,8 +108,7 @@ public class YouTubeRecyclerViewFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // set the Picasso debug indicator only for debug builds
-        Picasso.with(getActivity()).setIndicatorsEnabled(BuildConfig.DEBUG);
+        // Glide automatically handles debug indicators in debug builds
 
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.youtube_recycler_view_fragment, container, false);

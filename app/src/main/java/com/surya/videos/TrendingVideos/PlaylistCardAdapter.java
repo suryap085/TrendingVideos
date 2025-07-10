@@ -3,7 +3,7 @@ package com.surya.videos.TrendingVideos;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +13,7 @@ import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoContentDetails;
 import com.google.api.services.youtube.model.VideoSnippet;
 import com.google.api.services.youtube.model.VideoStatistics;
-import com.squareup.picasso.Picasso;
+import com.bumptech.glide.Glide;
 
 import java.text.DecimalFormat;
 
@@ -95,7 +95,7 @@ public class PlaylistCardAdapter extends RecyclerView.Adapter<PlaylistCardAdapte
         holder.mDescriptionText.setText(videoSnippet.getDescription());
 
         // load the video thumbnail image
-        Picasso.with(holder.mContext)
+        Glide.with(holder.mContext)
                 .load(videoSnippet.getThumbnails().getHigh().getUrl())
                 .placeholder(R.drawable.video_placeholder)
                 .into(holder.mThumbnailImage);

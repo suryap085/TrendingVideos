@@ -13,8 +13,8 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import com.google.api.services.youtube.YouTube;
-import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.Video;
 import com.bumptech.glide.Glide;
 import java.util.ArrayList;
@@ -34,37 +34,50 @@ import java.util.List;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  * <p/>
- * <p/>
- * YouTubeRecyclerViewFragment contains a RecyclerView that shows a list of YouTube video cards.
- * <p/>
+ * COMPLIANCE UPDATE: Updated to use legitimate YouTube Data API for trending videos
+ * with proper content filtering and YouTube attribution requirements.
  */
 public class YouTubeRecyclerViewFragment extends Fragment {
-    // the fragment initialization parameter
-    private static final String ARG_YOUTUBE_PLAYLIST_IDS = "YOUTUBE_PLAYLIST_IDS";
+    // COMPLIANCE FIX: Changed from playlists to video categories
+    private static final String ARG_YOUTUBE_CATEGORY_IDS = "YOUTUBE_CATEGORY_IDS";
     private static final int SPINNER_ITEM_LAYOUT_ID = android.R.layout.simple_spinner_item;
     private static final int SPINNER_ITEM_DROPDOWN_LAYOUT_ID = android.R.layout.simple_spinner_dropdown_item;
 
-    private String[] mPlaylistIds;
-    private ArrayList<String> mPlaylistTitles;
+    // Category names for display (compliant with YouTube policies)
+    private static final String[] CATEGORY_NAMES = {
+        "Music",
+        "Gaming", 
+        "People & Blogs",
+        "Comedy",
+        "Entertainment",
+        "News & Politics",
+        "Howto & Style",
+        "Education",
+        "Science & Technology"
+    };
+
+    private String[] mCategoryIds;
+    private ArrayList<String> mCategoryTitles;
     private RecyclerView mRecyclerView;
-    private PlaylistVideos mPlaylistVideos;
+    private TrendingVideos mTrendingVideos;
     private RecyclerView.LayoutManager mLayoutManager;
-    private Spinner mPlaylistSpinner;
-    private PlaylistCardAdapter mPlaylistCardAdapter;
+    private Spinner mCategorySpinner;
+    private PlaylistCardAdapter mVideoCardAdapter;
     private YouTube mYouTubeDataApi;
+    private TextView mAttributionText;
 
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
      * @param youTubeDataApi
-     * @param playlistIds A String array of YouTube Playlist IDs
+     * @param categoryIds A String array of YouTube Video Category IDs
      * @return A new instance of fragment YouTubeRecyclerViewFragment.
      */
-    public static YouTubeRecyclerViewFragment newInstance(YouTube youTubeDataApi, String[] playlistIds) {
+    public static YouTubeRecyclerViewFragment newInstance(YouTube youTubeDataApi, String[] categoryIds) {
         YouTubeRecyclerViewFragment fragment = new YouTubeRecyclerViewFragment();
         Bundle args = new Bundle();
-        args.putStringArray(ARG_YOUTUBE_PLAYLIST_IDS, playlistIds);
+        args.putStringArray(ARG_YOUTUBE_CATEGORY_IDS, categoryIds);
         fragment.setArguments(args);
         fragment.setYouTubeDataApi(youTubeDataApi);
         return fragment;
@@ -83,35 +96,24 @@ public class YouTubeRecyclerViewFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         if (getArguments() != null) {
-            mPlaylistIds = getArguments().getStringArray(ARG_YOUTUBE_PLAYLIST_IDS);
+            mCategoryIds = getArguments().getStringArray(ARG_YOUTUBE_CATEGORY_IDS);
         }
 
-        // start fetching the playlist titles
-        new GetPlaylistTitlesAsyncTask(mYouTubeDataApi) {
-            @Override
-            protected void onPostExecute(PlaylistListResponse playlistListResponse) {
-                // if we didn't receive a response for the playlist titles, then there's nothing to update
-                if (playlistListResponse == null)
-                    return;
-
-                mPlaylistTitles = new ArrayList();
-                for (com.google.api.services.youtube.model.Playlist playlist : playlistListResponse.getItems()) {
-                    mPlaylistTitles.add(playlist.getSnippet().getTitle());
-                }
-                // update the spinner adapter with the titles of the playlists
-                ArrayAdapter<List<String>> spinnerAdapter = new ArrayAdapter(getContext(), android.R.layout.simple_spinner_item, mPlaylistTitles);
-                spinnerAdapter.setDropDownViewResource(SPINNER_ITEM_DROPDOWN_LAYOUT_ID);
-                mPlaylistSpinner.setAdapter(spinnerAdapter);
-            }
-        }.execute(mPlaylistIds);
+        // COMPLIANCE: Initialize category titles (no API call needed for categories)
+        mCategoryTitles = new ArrayList<>(Arrays.asList(CATEGORY_NAMES));
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Glide automatically handles debug indicators in debug builds
-
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.youtube_recycler_view_fragment, container, false);
+
+        // COMPLIANCE: Add YouTube attribution (required)
+        mAttributionText = (TextView) rootView.findViewById(R.id.youtube_attribution);
+        if (mAttributionText != null) {
+            mAttributionText.setText(getString(R.string.youtube_attribution));
+            mAttributionText.setVisibility(View.VISIBLE);
+        }
 
         mRecyclerView = (RecyclerView) rootView.findViewById(R.id.youtube_recycler_view);
         // use this setting to improve performance if you know that changes
@@ -129,7 +131,7 @@ public class YouTubeRecyclerViewFragment extends Fragment {
 
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        mPlaylistSpinner = (Spinner)rootView.findViewById(R.id.youtube_playlist_spinner);
+        mCategorySpinner = (Spinner)rootView.findViewById(R.id.youtube_playlist_spinner);
 
         return rootView;
     }
@@ -138,37 +140,34 @@ public class YouTubeRecyclerViewFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        // if we have a playlist in our retained fragment, use it to populate the UI
-        if (mPlaylistVideos != null) {
-            // reload the UI with the existing playlist.  No need to fetch it again
-            reloadUi(mPlaylistVideos, false);
+        // COMPLIANCE FIX: Use trending videos instead of playlists
+        if (mTrendingVideos != null) {
+            // reload the UI with the existing videos.  No need to fetch again
+            reloadUi(mTrendingVideos, false);
         } else {
-            // otherwise create an empty playlist using the first item in the playlist id's array
-            mPlaylistVideos = new PlaylistVideos(mPlaylistIds[0]);
-            // and reload the UI with the selected playlist and kick off fetching the playlist content
-            reloadUi(mPlaylistVideos, true);
+            // create trending videos list using the first category
+            mTrendingVideos = new TrendingVideos(mCategoryIds[0]);
+            // and reload the UI with the selected category and kick off fetching
+            reloadUi(mTrendingVideos, true);
         }
 
-        ArrayAdapter<List<String>> spinnerAdapter;
-        // if we don't have the playlist titles yet
-        if (mPlaylistTitles == null || mPlaylistTitles.isEmpty()) {
-            // initialize the spinner with the playlist ID's so that there's something in the UI until the GetPlaylistTitlesAsyncTask finishes
-            spinnerAdapter = new ArrayAdapter(getContext(), SPINNER_ITEM_LAYOUT_ID, Arrays.asList(mPlaylistIds));
-        } else {
-            // otherwise use the playlist titles for the spinner
-            spinnerAdapter = new ArrayAdapter(getContext(), SPINNER_ITEM_LAYOUT_ID, mPlaylistTitles);
-        }
+        // Setup spinner with category names
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(
+            getContext(), 
+            SPINNER_ITEM_LAYOUT_ID, 
+            mCategoryTitles
+        );
 
         spinnerAdapter.setDropDownViewResource(SPINNER_ITEM_DROPDOWN_LAYOUT_ID);
-        mPlaylistSpinner.setAdapter(spinnerAdapter);
+        mCategorySpinner.setAdapter(spinnerAdapter);
 
         // set up the onItemSelectedListener for the spinner
-        mPlaylistSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        mCategorySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                // reload the UI with the playlist video list of the selected playlist
-                mPlaylistVideos = new PlaylistVideos(mPlaylistIds[position]);
-                reloadUi(mPlaylistVideos, true);
+                // reload the UI with trending videos for the selected category
+                mTrendingVideos = new TrendingVideos(mCategoryIds[position]);
+                reloadUi(mTrendingVideos, true);
             }
 
             @Override
@@ -176,49 +175,69 @@ public class YouTubeRecyclerViewFragment extends Fragment {
         });
     }
 
-    private void reloadUi(final PlaylistVideos playlistVideos, boolean fetchPlaylist) {
+    private void reloadUi(final TrendingVideos trendingVideos, boolean fetchVideos) {
         // initialize the cards adapter
-        initCardAdapter(playlistVideos);
+        initCardAdapter(trendingVideos);
 
-        if (fetchPlaylist) {
-            // start fetching the selected playlistVideos contents
-            new GetPlaylistAsyncTask(mYouTubeDataApi) {
+        if (fetchVideos) {
+            // start fetching trending videos for the selected category
+            new GetTrendingVideosAsyncTask(mYouTubeDataApi) {
                 @Override
                 public void onPostExecute(Pair<String, List<Video>> result) {
-                    handleGetPlaylistResult(playlistVideos, result);
+                    handleGetVideosResult(trendingVideos, result);
                 }
-            }.execute(playlistVideos.playlistId, playlistVideos.getNextPageToken());
+            }.execute(trendingVideos.categoryId, trendingVideos.getNextPageToken());
         }
     }
 
-    private void initCardAdapter(final PlaylistVideos playlistVideos) {
-        // create the adapter with our playlistVideos and a callback to handle when we reached the last item
-        mPlaylistCardAdapter = new PlaylistCardAdapter(playlistVideos, new LastItemReachedListener() {
+    private void initCardAdapter(final TrendingVideos trendingVideos) {
+        // create the adapter with our trending videos and a callback for pagination
+        mVideoCardAdapter = new PlaylistCardAdapter(trendingVideos, new LastItemReachedListener() {
             @Override
             public void onLastItem(int position, String nextPageToken) {
-                new GetPlaylistAsyncTask(mYouTubeDataApi) {
+                new GetTrendingVideosAsyncTask(mYouTubeDataApi) {
                     @Override
                     public void onPostExecute(Pair<String, List<Video>> result) {
-                        handleGetPlaylistResult(playlistVideos, result);
+                        handleGetVideosResult(trendingVideos, result);
                     }
-                }.execute(playlistVideos.playlistId, playlistVideos.getNextPageToken());
+                }.execute(trendingVideos.categoryId, trendingVideos.getNextPageToken());
             }
         });
-        mRecyclerView.setAdapter(mPlaylistCardAdapter);
+        mRecyclerView.setAdapter(mVideoCardAdapter);
     }
 
-    private void handleGetPlaylistResult(PlaylistVideos playlistVideos, Pair<String, List<Video>> result) {
+    private void handleGetVideosResult(TrendingVideos trendingVideos, Pair<String, List<Video>> result) {
         if (result == null) return;
-        final int positionStart = playlistVideos.size();
-        playlistVideos.setNextPageToken(result.first);
-        playlistVideos.addAll(result.second);
-        mPlaylistCardAdapter.notifyItemRangeInserted(positionStart, result.second.size());
+        final int positionStart = trendingVideos.size();
+        trendingVideos.setNextPageToken(result.first);
+        trendingVideos.addAll(result.second);
+        mVideoCardAdapter.notifyItemRangeInserted(positionStart, result.second.size());
     }
 
     /**
-     * Interface used by the {@link PlaylistCardAdapter} to inform us that we reached the last item in the list.
+     * Interface used by the adapter to inform us that we reached the last item in the list.
      */
     public interface LastItemReachedListener {
         void onLastItem(int position, String nextPageToken);
+    }
+
+    /**
+     * COMPLIANCE: Helper class for trending videos (replacing PlaylistVideos)
+     */
+    public static class TrendingVideos extends ArrayList<Video> {
+        public final String categoryId;
+        private String nextPageToken;
+
+        public TrendingVideos(String categoryId) {
+            this.categoryId = categoryId;
+        }
+
+        public String getNextPageToken() {
+            return nextPageToken;
+        }
+
+        public void setNextPageToken(String nextPageToken) {
+            this.nextPageToken = nextPageToken;
+        }
     }
 }

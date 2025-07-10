@@ -1,7 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <string name="app_name">Trending Videos</string>
-    <string name="action_recycler_view">RecyclerView</string>
-
+    <!-- App Branding - Policy Compliant -->
+    <string name="app_name">Video Browser</string>
+    <string name="app_description">Browse and discover videos using YouTube Data API</string>
+    
+    <!-- YouTube Policy Compliance -->
+    <string name="youtube_attribution">Powered by YouTube Data API</string>
+    <string name="youtube_disclaimer">This app is not affiliated with, endorsed, sponsored, or specifically approved by YouTube or Google. All video content is sourced from YouTube using their public API.</string>
+    <string name="content_disclaimer">Content is provided by YouTube. This app does not store, download, or cache any video content.</string>
+    
+    <!-- Navigation and Actions -->
+    <string name="action_recycler_view">Grid View</string>
+    <string name="search_videos">Search Videos</string>
+    <string name="search_trending_videos">Search and Browse Videos</string>
+    <string name="trending_videos">Popular Videos</string>
+    <string name="search_hint">Search for videos...</string>
+    
+    <!-- Player and Playback -->
+    <string name="video_player_title">Video Player</string>
+    <string name="loading_video">Loading video...</string>
+    <string name="error_player">YouTube Player Error: %1$s</string>
+    <string name="error_network">Please check your internet connection</string>
+    
+    <!-- Content Filtering -->
+    <string name="content_filter_title">Content Filter</string>
+    <string name="family_friendly_only">Family-friendly content only</string>
+    <string name="content_rating_notice">Content ratings provided by YouTube</string>
+    
+    <!-- Privacy and Legal -->
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="data_usage_notice">This app uses YouTube Data API to fetch video information. No personal data is collected.</string>
+    
+    <!-- Error Messages -->
+    <string name="api_key_missing">API key not configured</string>
+    <string name="api_key_invalid">Invalid API key</string>
+    <string name="no_results_found">No videos found</string>
+    <string name="network_error">Network error occurred</string>
 </resources>

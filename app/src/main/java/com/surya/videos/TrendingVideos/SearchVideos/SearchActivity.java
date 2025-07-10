@@ -1,23 +1,20 @@
 package com.surya.videos.TrendingVideos.SearchVideos;
 
-import android.app.Activity;
-import android.app.ProgressDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.PersistableBundle;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.ProgressBar;
 
-import com.squareup.picasso.Picasso;
+import com.bumptech.glide.Glide;
 import com.surya.videos.TrendingVideos.R;
 import com.surya.videos.TrendingVideos.YouTubeActivity;
 import com.surya.videos.TrendingVideos.YouTubePlayer_Activity;
@@ -27,12 +24,12 @@ import java.util.List;
 /**
  * Created by Surya on 5/19/2017.
  */
-public class SearchActivity extends Activity {
+public class SearchActivity extends AppCompatActivity {
     private EditText searchInput;
     private ListView videosFound;
     private Handler handler;
     private List<VideoItem> searchResults;
-    private ProgressDialog pd;
+    private ProgressBar progressBar;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -64,8 +61,7 @@ public class SearchActivity extends Activity {
     }
 
     public void btnSearchClick(View v) {
-        pd = ProgressDialog.show(this, "",
-                "searching file..!Please wait...", true);
+        progressBar.setVisibility(View.VISIBLE);
         searchOnYoutube(searchInput.getText().toString());
     }
 
@@ -101,7 +97,7 @@ public class SearchActivity extends Activity {
 
                 VideoItem searchResult = searchResults.get(position);
 
-                Picasso.with(getApplicationContext()).load(searchResult.getThumbnailURL()).into(thumbnail);
+                Glide.with(getApplicationContext()).load(searchResult.getThumbnailURL()).into(thumbnail);
                 title.setText(searchResult.getTitle());
                 //description.setText(searchResult.getDescription());
                 return convertView;
@@ -109,7 +105,7 @@ public class SearchActivity extends Activity {
         };
 
         videosFound.setAdapter(adapter);
-        pd.dismiss();
+        progressBar.setVisibility(View.GONE);
     }
 
 

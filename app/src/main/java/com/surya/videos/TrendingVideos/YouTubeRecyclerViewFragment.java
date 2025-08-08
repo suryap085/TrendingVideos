@@ -16,6 +16,9 @@ import android.widget.Spinner;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.Video;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
+import com.google.android.gms.ads.AdView;
 import com.bumptech.glide.Glide;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +50,7 @@ public class YouTubeRecyclerViewFragment extends Fragment {
     private String[] mPlaylistIds;
     private ArrayList<String> mPlaylistTitles;
     private RecyclerView mRecyclerView;
+    private AdView adView;
     private PlaylistVideos mPlaylistVideos;
     private RecyclerView.LayoutManager mLayoutManager;
     private Spinner mPlaylistSpinner;
@@ -114,6 +118,19 @@ public class YouTubeRecyclerViewFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.youtube_recycler_view_fragment, container, false);
 
         mRecyclerView = (RecyclerView) rootView.findViewById(R.id.youtube_recycler_view);
+        adView = (AdView) rootView.findViewById(R.id.adView_list);
+        if (adView != null) {
+            try {
+                // Set adaptive banner size
+                AdSize adSize = getAdSize();
+                adView.setAdSize(adSize);
+                AdRequest adRequest = new AdRequest.Builder().build();
+                adView.loadAd(adRequest);
+            } catch (Exception e) {
+                // Handle any ad loading errors gracefully
+                adView.setVisibility(View.GONE);
+            }
+        }
         // use this setting to improve performance if you know that changes
         // in content do not change the layout size of the RecyclerView
         mRecyclerView.setHasFixedSize(true);
@@ -220,5 +237,49 @@ public class YouTubeRecyclerViewFragment extends Fragment {
      */
     public interface LastItemReachedListener {
         void onLastItem(int position, String nextPageToken);
+    }
+
+    @Override
+    public void onPause() {
+        if (adView != null) {
+            adView.pause();
+        }
+        super.onPause();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (adView != null) {
+            adView.resume();
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (adView != null) {
+            adView.destroy();
+        }
+        super.onDestroyView();
+    }
+
+    /**
+     * Gets the adaptive banner size based on device width and screen density
+     */
+    private AdSize getAdSize() {
+        try {
+            // Determine the screen width to use for finding the best ad size.
+            android.util.DisplayMetrics displayMetrics = new android.util.DisplayMetrics();
+            if (getActivity() != null) {
+                getActivity().getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                float density = displayMetrics.density;
+                float dpWidth = displayMetrics.widthPixels / density;
+                int adWidth = (int) (dpWidth);
+                return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(getActivity(), adWidth);
+            }
+        } catch (Exception e) {
+            // Fallback to standard banner if adaptive banner fails
+        }
+        return AdSize.BANNER;
     }
 }

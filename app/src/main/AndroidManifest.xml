@@ -5,6 +5,7 @@
     <!-- Required permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
     
     <!-- Remove deprecated GET_ACCOUNTS permissions -->
     <!-- <uses-permission android:name="android.permission.GET_ACCOUNTS" /> -->
@@ -28,6 +29,7 @@
         android:theme="@style/AppTheme"
         android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="false"
+        android:name=".TrendingVideosApp"
         tools:targetApi="31">
 
         <activity
@@ -66,6 +68,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Google Mobile Ads SDK App ID via manifest placeholder. Replace with your real AdMob App ID in gradle: manifestPlaceholders -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
 
     </application>
 

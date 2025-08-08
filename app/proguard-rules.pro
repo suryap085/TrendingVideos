@@ -56,6 +56,12 @@
   public *;
 }
 
+# Keep AdMob classes to prevent crashes in release builds
+-keep class com.google.android.gms.ads.** { *; }
+-keep interface com.google.android.gms.ads.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.internal.ads.** { *; }
+
 # Remove logging in release builds
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);

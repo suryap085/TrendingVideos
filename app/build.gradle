@@ -44,7 +44,8 @@ android {
     // Signing configuration for Play Store release
     signingConfigs {
         release {
-            // TODO: Configure with your keystore
+            // TODO: Configure with your keystore for Play Store release
+            // Uncomment and configure these lines when ready to publish:
             // storeFile file('path/to/your/keystore.jks')
             // storePassword 'your_store_password'
             // keyAlias 'your_key_alias'
@@ -104,6 +105,12 @@ dependencies {
     // YouTube Player
     implementation files('libs/YouTubeAndroidPlayerApi.jar')
     
+    // Google Mobile Ads SDK
+    implementation 'com.google.android.gms:play-services-ads:23.1.0'
+    
+    // Gson for JSON handling
+    implementation 'com.google.code.gson:gson:2.10.1'
+
     // Google APIs
     implementation 'com.google.apis:google-api-services-youtube:v3-rev20231011-2.0.0'
     implementation 'com.google.api-client:google-api-client-android:2.0.1'

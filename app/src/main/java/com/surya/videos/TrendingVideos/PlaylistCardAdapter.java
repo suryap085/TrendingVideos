@@ -91,23 +91,45 @@ public class PlaylistCardAdapter extends RecyclerView.Adapter<PlaylistCardAdapte
         final VideoContentDetails videoContentDetails = video.getContentDetails();
         final VideoStatistics videoStatistics = video.getStatistics();
 
-        holder.mTitleText.setText(videoSnippet.getTitle());
-        holder.mDescriptionText.setText(videoSnippet.getDescription());
+        // Safely set text with null checks
+        if (videoSnippet.getTitle() != null) {
+            holder.mTitleText.setText(videoSnippet.getTitle());
+        } else {
+            holder.mTitleText.setText("");
+        }
+        
+        if (videoSnippet.getDescription() != null) {
+            holder.mDescriptionText.setText(videoSnippet.getDescription());
+        } else {
+            holder.mDescriptionText.setText("");
+        }
 
-        // load the video thumbnail image
-        Glide.with(holder.mContext)
-                .load(videoSnippet.getThumbnails().getHigh().getUrl())
-                .placeholder(R.drawable.video_placeholder)
-                .into(holder.mThumbnailImage);
+        // load the video thumbnail image with null safety
+        try {
+            if (videoSnippet.getThumbnails() != null && videoSnippet.getThumbnails().getHigh() != null) {
+                Glide.with(holder.mContext)
+                        .load(videoSnippet.getThumbnails().getHigh().getUrl())
+                        .placeholder(R.drawable.video_placeholder)
+                        .into(holder.mThumbnailImage);
+            } else {
+                holder.mThumbnailImage.setImageResource(R.drawable.video_placeholder);
+            }
+        } catch (Exception e) {
+            holder.mThumbnailImage.setImageResource(R.drawable.video_placeholder);
+        }
 
         // set the click listener to play the video
         holder.mThumbnailImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent sendIntent = new Intent(holder.mContext,YouTubePlayer_Activity.class);
-                sendIntent.putExtra("VideoId",video.getId());
-                holder.mContext.startActivity(sendIntent);
-               // holder.mContext.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.youtube.com/watch?v=" + video.getId())));
+                try {
+                    Intent sendIntent = new Intent(holder.mContext,YouTubePlayer_Activity.class);
+                    sendIntent.putExtra("VideoId",video.getId());
+                    holder.mContext.startActivity(sendIntent);
+                   // holder.mContext.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.youtube.com/watch?v=" + video.getId())));
+                } catch (Exception e) {
+                    // Handle activity start failure gracefully
+                }
             }
         });
 
@@ -115,23 +137,61 @@ public class PlaylistCardAdapter extends RecyclerView.Adapter<PlaylistCardAdapte
         View.OnClickListener shareClickListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent sendIntent = new Intent();
-                sendIntent.setAction(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Watch \"" + videoSnippet.getTitle() + "\" on YouTube");
-                sendIntent.putExtra(Intent.EXTRA_TEXT, "http://www.youtube.com/watch?v=" + video.getId());
-                sendIntent.setType("text/plain");
-                holder.mContext.startActivity(sendIntent);
+                try {
+                    Intent sendIntent = new Intent();
+                    sendIntent.setAction(Intent.ACTION_SEND);
+                    String title = videoSnippet.getTitle() != null ? videoSnippet.getTitle() : "Video";
+                    sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Watch \"" + title + "\" on YouTube");
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, "http://www.youtube.com/watch?v=" + video.getId());
+                    sendIntent.setType("text/plain");
+                    holder.mContext.startActivity(sendIntent);
+                } catch (Exception e) {
+                    // Handle share intent failure gracefully
+                }
             }
         };
         holder.mShareIcon.setOnClickListener(shareClickListener);
         holder.mShareText.setOnClickListener(shareClickListener);
 
-        // set the video duration text
-        holder.mDurationText.setText(parseDuration(videoContentDetails.getDuration()));
-        // set the video statistics
-        holder.mViewCountText.setText(sFormatter.format(videoStatistics.getViewCount()));
-        holder.mLikeCountText.setText(sFormatter.format(videoStatistics.getLikeCount()));
-        holder.mDislikeCountText.setText(sFormatter.format(videoStatistics.getDislikeCount()));
+        // set the video duration text with null safety
+        try {
+            if (videoContentDetails != null && videoContentDetails.getDuration() != null) {
+                holder.mDurationText.setText(parseDuration(videoContentDetails.getDuration()));
+            } else {
+                holder.mDurationText.setText("");
+            }
+        } catch (Exception e) {
+            holder.mDurationText.setText("");
+        }
+        
+        // set the video statistics with null safety
+        try {
+            if (videoStatistics != null) {
+                if (videoStatistics.getViewCount() != null) {
+                    holder.mViewCountText.setText(sFormatter.format(videoStatistics.getViewCount()));
+                } else {
+                    holder.mViewCountText.setText("0");
+                }
+                if (videoStatistics.getLikeCount() != null) {
+                    holder.mLikeCountText.setText(sFormatter.format(videoStatistics.getLikeCount()));
+                } else {
+                    holder.mLikeCountText.setText("0");
+                }
+                if (videoStatistics.getDislikeCount() != null) {
+                    holder.mDislikeCountText.setText(sFormatter.format(videoStatistics.getDislikeCount()));
+                } else {
+                    holder.mDislikeCountText.setText("0");
+                }
+            } else {
+                holder.mViewCountText.setText("0");
+                holder.mLikeCountText.setText("0");
+                holder.mDislikeCountText.setText("0");
+            }
+        } catch (Exception e) {
+            holder.mViewCountText.setText("0");
+            holder.mLikeCountText.setText("0");
+            holder.mDislikeCountText.setText("0");
+        }
 
         if (mListener != null) {
             // get the next playlist page if we're at the end of the current page and we have another page to get

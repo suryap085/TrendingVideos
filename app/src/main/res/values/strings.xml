@@ -3,5 +3,26 @@
 
     <string name="app_name">Trending Videos</string>
     <string name="action_recycler_view">RecyclerView</string>
+    
+    <!-- AdMob IDs - REPLACE WITH YOUR REAL IDS FOR PRODUCTION -->
+    <string name="admob_app_id">ca-app-pub-8038881180913343~4985884084</string>
+    <string name="admob_banner_id">ca-app-pub-8038881180913343/9992435234</string>
+    
+    <!-- App Features -->
+    <string name="search_hint">Search videos, channels, playlists...</string>
+    <string name="trending">Trending</string>
+    <string name="music">Music</string>
+    <string name="gaming">Gaming</string>
+    <string name="news">News</string>
+    <string name="sports">Sports</string>
+    <string name="favorites">Favorites</string>
+    <string name="add_to_favorites">Add to Favorites</string>
+    <string name="remove_from_favorites">Remove from Favorites</string>
+    <string name="video_quality">Video Quality</string>
+    <string name="pull_to_refresh">Pull to refresh</string>
+    <string name="no_favorites">No favorites yet. Start adding videos!</string>
+    <string name="share_message">Check out this awesome video!</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="light_theme">Light Theme</string>
 
 </resources>

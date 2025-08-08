@@ -96,6 +96,10 @@ public abstract class GetPlaylistAsyncTask extends AsyncTask<String, Void, Pair<
             e.printStackTrace();
         }
 
-        return new Pair(playlistItemListResponse.getNextPageToken(), videoListResponse.getItems());
+        if (videoListResponse != null && videoListResponse.getItems() != null) {
+            return new Pair(playlistItemListResponse.getNextPageToken(), videoListResponse.getItems());
+        } else {
+            return new Pair(playlistItemListResponse.getNextPageToken(), new ArrayList<Video>());
+        }
     }
 }

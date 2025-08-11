@@ -2,9 +2,9 @@ package com.surya.videos.TrendingVideos;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.transition.TransitionInflater;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
@@ -25,8 +25,13 @@ public class YouTubePlayer_Activity extends YouTubeBaseActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Enable content transitions
+        getWindow().requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
         super.onCreate(savedInstanceState);
-        getLayoutInflater().setFactory(this);
+        getWindow().setSharedElementEnterTransition(TransitionInflater.from(this).inflateTransition(R.transition.shared_image_transition));
+        getWindow().setSharedElementReturnTransition(TransitionInflater.from(this).inflateTransition(R.transition.shared_image_transition));
+
+        // Fullscreen
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -46,10 +51,6 @@ public class YouTubePlayer_Activity extends YouTubeBaseActivity implements
                                         YouTubeInitializationResult errorReason) {
         if (errorReason.isUserRecoverableError()) {
             errorReason.getErrorDialog(this, RECOVERY_DIALOG_REQUEST).show();
-        } else {
-//            String errorMessage = String.format(
-//                    getString(R.string.error_player), errorReason.toString());
-//            Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
         }
     }
 

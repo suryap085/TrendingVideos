@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'com.google.gms.google-services'
+    id 'kotlin-kapt'
 }
 
 android {
@@ -102,6 +104,9 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
     
+    // Shimmer for skeleton loading
+    implementation 'com.facebook.shimmer:shimmer:0.5.0'
+    
     // YouTube Player
     implementation files('libs/YouTubeAndroidPlayerApi.jar')
     
@@ -121,6 +126,29 @@ dependencies {
     
     // Coroutines for async operations
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-analytics'
+    
+    // Room Database
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+    kapt 'androidx.room:room-compiler:2.6.1'
+    annotationProcessor 'androidx.room:room-compiler:2.6.1'
+    
+    // WorkManager for background tasks
+    implementation 'androidx.work:work-runtime-ktx:2.9.0'
+    
+    // Navigation Component
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.7.6'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.7.6'
+    
+    // DataStore for preferences
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
     
     // Testing
     testImplementation 'junit:junit:4.13.2'

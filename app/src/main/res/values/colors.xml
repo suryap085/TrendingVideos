@@ -6,7 +6,26 @@
     <color name="colorBackground">#FFFFFF</color>
     <color name="colorSurface">#FFFFFF</color>
     <color name="colorOnSurface">#000000</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorOnSecondary">#000000</color>
+    <color name="colorSecondary">#FFE0E0</color>
+    <color name="colorError">#B00020</color>
+    <color name="colorOnError">#FFFFFF</color>
     <color name="colorOnBackground">#000000</color>
+    <color name="colorSurfaceVariant">#F5F5F5</color>
+    <color name="colorOnSurfaceVariant">#666666</color>
+    <color name="colorOutline">#E0E0E0</color>
+    <color name="colorOutlineVariant">#CCCCCC</color>
+    <color name="colorInverseSurface">#121212</color>
+    <color name="colorInverseOnSurface">#FFFFFF</color>
+    <color name="colorInversePrimary">#FF6B6B</color>
+    <color name="colorShadow">#000000</color>
+    <color name="colorScrim">#000000</color>
+    <color name="colorSurfaceTint">#FF0000</color>
+    <color name="colorOnSurfaceInverse">#FFFFFF</color>
+    <color name="colorSurfaceInverse">#121212</color>
+    <color name="colorPrimaryInverse">#FF6B6B</color>
+    <color name="notification_color">#FF0000</color>
     
     <!-- Dark Theme Colors -->
     <color name="colorPrimaryDarkTheme">#FF4444</color>

@@ -28,6 +28,15 @@
             android:textColor="?android:attr/textColorPrimary"
             android:textColorHint="?android:attr/textColorSecondary" />
 
+        <ImageButton
+            android:id="@+id/btn_voice"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:contentDescription="@string/search" />
+
         <Button
             android:id="@+id/btn_search"
             android:layout_width="wrap_content"
@@ -45,6 +54,13 @@
             android:src="@drawable/ic_dark_mode"
             android:contentDescription="@string/dark_theme" />
     </LinearLayout>
+
+    <!-- Suggestions Container (visible on focus / typing) -->
+    <FrameLayout
+        android:id="@+id/suggestions_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
     <!-- Category Tabs -->
     <com.google.android.material.tabs.TabLayout

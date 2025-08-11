@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    style="@style/VideoCardStyle">
+    android:foreground="?attr/selectableItemBackground"
+    app:cardUseCompatPadding="true"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/colorOutline">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,13 +18,42 @@
         android:orientation="horizontal"
         android:padding="12dp">
 
-        <ImageView
-            android:id="@+id/video_thumbnail"
-            android:layout_width="120dp"
-            android:layout_height="90dp"
-            android:scaleType="centerCrop"
-            android:background="@drawable/video_placeholder"
-            android:contentDescription="Video thumbnail" />
+        <FrameLayout
+            android:layout_width="140dp"
+            android:layout_height="96dp">
+
+            <ImageView
+                android:id="@+id/video_thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@drawable/rounded_image"
+                android:clipToOutline="true"
+                android:transitionName="video_thumb"
+                android:contentDescription="Video thumbnail" />
+
+            <TextView
+                android:id="@+id/video_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:textSize="12sp"
+                android:textColor="@android:color/white"
+                android:background="@drawable/duration_background"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:text=""
+                android:visibility="visible" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/overlay_gradient_bottom" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -37,13 +71,13 @@
                 android:textColor="?android:attr/textColorPrimary"
                 android:maxLines="2"
                 android:ellipsize="end"
-                android:layout_marginBottom="4dp" />
+                android:layout_marginBottom="6dp" />
 
             <TextView
                 android:id="@+id/video_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textColor="?android:attr/textColorSecondary"
                 android:maxLines="2"
                 android:ellipsize="end"
@@ -56,21 +90,12 @@
                 android:layout_marginTop="8dp">
 
                 <TextView
-                    android:id="@+id/video_duration"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:background="@drawable/duration_background"
-                    android:padding="4dp"
-                    android:layout_marginEnd="8dp" />
-
-                <TextView
                     android:id="@+id/video_views"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="?android:attr/textColorSecondary" />
+                    android:textColor="?android:attr/textColorSecondary"
+                    android:text="" />
 
             </LinearLayout>
 
@@ -88,4 +113,4 @@
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

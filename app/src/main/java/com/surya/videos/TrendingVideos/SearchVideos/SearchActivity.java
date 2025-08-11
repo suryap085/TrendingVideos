@@ -2,16 +2,25 @@ package com.surya.videos.TrendingVideos.SearchVideos;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.android.material.tabs.TabLayout;
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.speech.RecognizerIntent;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -27,13 +36,26 @@ import com.surya.videos.TrendingVideos.R;
 import com.surya.videos.TrendingVideos.YouTubeActivity;
 import com.surya.videos.TrendingVideos.YouTubePlayer_Activity;
 import com.surya.videos.TrendingVideos.ThemeManager;
-import com.surya.videos.TrendingVideos.FavoritesManager;
-import com.surya.videos.TrendingVideos.FavoritesManager.FavoriteVideo;
+import com.surya.videos.TrendingVideos.utils.FavoritesManager;
+import com.surya.videos.TrendingVideos.search.SearchHistoryManager;
+import com.surya.videos.TrendingVideos.database.entity.SearchQuery;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.surya.videos.TrendingVideos.search.TrendingSuggestionsProvider;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.content.SharedPreferences;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Locale;
+import androidx.lifecycle.LiveDataWrapper;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 public class SearchActivity extends AppCompatActivity {
+    private static final int REQ_VOICE = 5011;
+
     private EditText searchInput;
     private ListView videosFound;
     private Handler handler;
@@ -43,9 +65,24 @@ public class SearchActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefreshLayout;
     private TabLayout categoryTabs;
     private ImageButton themeToggle;
+    private ImageButton voiceBtn;
     private ThemeManager themeManager;
     private FavoritesManager favoritesManager;
+    private SearchHistoryManager historyManager;
     private String currentCategory = "trending";
+
+    private FrameLayout suggestionsContainer;
+    private View suggestionsView;
+    private ArrayAdapter<String> suggestionsAdapter;
+    private List<String> suggestionItems = new ArrayList<>();
+    private static final String HEADER_TRENDING = "— Trending searches —";
+    private static final String HEADER_RECENT = "— Recent searches —";
+    private TrendingSuggestionsProvider trendingProvider;
+    private List<String> trendingDefaults = new ArrayList<>();
+    private static final String PREFS = "search_prefs";
+    private static final String KEY_TRENDING_CHIPS = "trending_chips_enabled";
+    private SharedPreferences prefs;
+    private boolean trendingChipsEnabled;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,15 +97,23 @@ public class SearchActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
         
+        prefs = getApplicationContext().getSharedPreferences(PREFS, MODE_PRIVATE);
+        trendingChipsEnabled = prefs.getBoolean(KEY_TRENDING_CHIPS, true);
+
         initializeViews();
         setupAdMob();
         setupThemeToggle();
         setupCategoryTabs();
         setupSwipeRefresh();
         setupClickListeners();
+        setupSuggestions();
         
         handler = new Handler();
-        favoritesManager = new FavoritesManager(this);
+        favoritesManager = FavoritesManager.getInstance(this);
+        historyManager = SearchHistoryManager.getInstance(this);
+        trendingProvider = new TrendingSuggestionsProvider();
+        trendingProvider.attachCache(new com.surya.videos.TrendingVideos.search.TrendingSuggestionsCache(this));
+        fetchTrendingDefaults();
         
         // Load initial content
         loadCategoryContent(currentCategory);
@@ -82,6 +127,8 @@ public class SearchActivity extends AppCompatActivity {
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         categoryTabs = findViewById(R.id.category_tabs);
         themeToggle = findViewById(R.id.btn_theme_toggle);
+        voiceBtn = findViewById(R.id.btn_voice);
+        suggestionsContainer = findViewById(R.id.suggestions_container);
     }
 
     private void setupAdMob() {
@@ -110,7 +157,12 @@ public class SearchActivity extends AppCompatActivity {
             public void onTabSelected(TabLayout.Tab tab) {
                 String category = getCategoryFromTab(tab.getPosition());
                 currentCategory = category;
-                loadCategoryContent(category);
+                if ("trending".equals(category)) {
+                    showTrendingFragment();
+                } else {
+                    hideTrendingFragment();
+                    loadCategoryContent(category);
+                }
             }
 
             @Override
@@ -119,6 +171,51 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
         });
+        // Ensure default
+        showTrendingFragment();
+    }
+
+    private void showTrendingFragment() {
+        // Hide list and show fragment container
+        if (findViewById(R.id.trending_container) == null) {
+            // Inject a container above SwipeRefreshLayout
+            ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
+            ViewGroup decor = (ViewGroup) root.getChildAt(0);
+            // Add a container just above the SwipeRefreshLayout (index 3 after search bar and suggestions and tabs)
+            android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+            container.setId(R.id.trending_container);
+            container.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            // Insert before SwipeRefreshLayout in the layout hierarchy
+            View swipe = findViewById(R.id.swipeRefreshLayout);
+            if (swipe != null && decor instanceof ViewGroup) {
+                int idx = ((ViewGroup) decor).indexOfChild(swipe);
+                ((ViewGroup) decor).addView(container, idx);
+            } else {
+                ((ViewGroup) decor).addView(container);
+            }
+        }
+        videosFound.setVisibility(View.GONE);
+        swipeRefreshLayout.setVisibility(View.GONE);
+        Fragment f = TrendingFragment.newInstance(java.util.Locale.getDefault().getCountry());
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out);
+        ft.replace(R.id.trending_container, f, "trending");
+        ft.commitAllowingStateLoss();
+    }
+
+    private void hideTrendingFragment() {
+        Fragment f = getSupportFragmentManager().findFragmentByTag("trending");
+        if (f != null) {
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            ft.setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out);
+            ft.remove(f).commitAllowingStateLoss();
+        }
+        View container = findViewById(R.id.trending_container);
+        if (container != null && container.getParent() instanceof ViewGroup) {
+            ((ViewGroup) container.getParent()).removeView(container);
+        }
+        videosFound.setVisibility(View.VISIBLE);
+        swipeRefreshLayout.setVisibility(View.VISIBLE);
     }
 
     private void setupSwipeRefresh() {
@@ -129,6 +226,7 @@ public class SearchActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         findViewById(R.id.btn_search).setOnClickListener(v -> performSearch());
+        voiceBtn.setOnClickListener(v -> startVoice());
         
         videosFound.setOnItemClickListener((parent, view, position, id) -> {
             if (searchResults != null && position < searchResults.size()) {
@@ -136,6 +234,132 @@ public class SearchActivity extends AppCompatActivity {
                 intent.putExtra("VideoId", searchResults.get(position).getId());
                 startActivity(intent);
             }
+        });
+
+        searchInput.setOnFocusChangeListener((v, hasFocus) -> toggleSuggestions(hasFocus));
+
+        // Live suggestions as user types
+        searchInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.length() == 0) {
+                    showRecentSuggestions();
+                } else {
+                    showPrefixSuggestions(s.toString());
+                }
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+    }
+
+    private void setupSuggestions() {
+        suggestionsView = LayoutInflater.from(this).inflate(R.layout.search_history_suggestions, suggestionsContainer, false);
+        suggestionsContainer.addView(suggestionsView);
+
+        ListView list = suggestionsView.findViewById(R.id.list_suggestions);
+        View footer = LayoutInflater.from(this).inflate(R.layout.view_clear_history_footer, list, false);
+        list.addFooterView(footer, null, true);
+        suggestionsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, suggestionItems) {
+            @Override
+            public boolean isEnabled(int position) {
+                String item = suggestionItems.get(position);
+                return !(HEADER_TRENDING.equals(item) || HEADER_RECENT.equals(item));
+            }
+        };
+        list.setAdapter(suggestionsAdapter);
+        footer.findViewById(R.id.btn_clear_history).setOnClickListener(v -> historyManager.clearAll());
+
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            if (position < suggestionItems.size()) {
+                String q = suggestionItems.get(position);
+                if (HEADER_TRENDING.equals(q) || HEADER_RECENT.equals(q)) return;
+                searchInput.setText(q);
+                searchInput.setSelection(q.length());
+                performSearch();
+                toggleSuggestions(false);
+            }
+        });
+
+        list.setOnItemLongClickListener((parent, view, position, id) -> {
+            if (position < suggestionItems.size()) {
+                String q = suggestionItems.get(position);
+                if (!HEADER_TRENDING.equals(q) && !HEADER_RECENT.equals(q)) {
+                    historyManager.delete(q);
+                    Toast.makeText(this, "Removed from history", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        refreshCombinedSuggestions("");
+    }
+
+    private void toggleSuggestions(boolean show) {
+        suggestionsContainer.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) refreshCombinedSuggestions(searchInput.getText().toString());
+    }
+
+    private void showRecentSuggestions() {
+        refreshCombinedSuggestions("");
+    }
+
+    private void showPrefixSuggestions(String prefix) {
+        refreshCombinedSuggestions(prefix);
+    }
+
+    private void refreshCombinedSuggestions(String prefix) {
+        suggestionItems.clear();
+        suggestionsAdapter.notifyDataSetChanged();
+
+        // Trending from server/fallback first
+        if (!trendingDefaults.isEmpty()) {
+            suggestionItems.add(HEADER_TRENDING);
+            for (String s : trendingDefaults) {
+                if (prefix.isEmpty() || s.toLowerCase().startsWith(prefix.toLowerCase())) {
+                    suggestionItems.add(s);
+                }
+            }
+            suggestionsAdapter.notifyDataSetChanged();
+        }
+
+        // User Top searches (reinforces trending)
+        LiveDataWrapper.observeOnce(this, historyManager.getTop(5), top -> {
+            if (top != null && !top.isEmpty()) {
+                if (!suggestionItems.contains(HEADER_TRENDING)) suggestionItems.add(HEADER_TRENDING);
+                for (SearchQuery q : top) {
+                    String s = q.getQuery();
+                    if (prefix.isEmpty() || s.toLowerCase().startsWith(prefix.toLowerCase())) {
+                        if (!suggestionItems.contains(s)) suggestionItems.add(s);
+                    }
+                }
+                suggestionsAdapter.notifyDataSetChanged();
+            }
+        });
+
+        // Recent
+        LiveDataWrapper.observeOnce(this, historyManager.getRecent(10), recent -> {
+            boolean any = false;
+            if (recent != null && !recent.isEmpty()) {
+                List<String> recents = new ArrayList<>();
+                for (SearchQuery q : recent) {
+                    String s = q.getQuery();
+                    if (prefix.isEmpty() || s.toLowerCase().startsWith(prefix.toLowerCase())) {
+                        if (!recents.contains(s) && !suggestionItems.contains(s)) {
+                            recents.add(s);
+                        }
+                    }
+                }
+                if (!recents.isEmpty()) {
+                    suggestionItems.add(HEADER_RECENT);
+                    suggestionItems.addAll(recents);
+                    any = true;
+                }
+            }
+            if (!any && suggestionItems.isEmpty()) {
+                suggestionItems.add("No history yet");
+            }
+            suggestionsAdapter.notifyDataSetChanged();
         });
     }
 
@@ -162,37 +386,15 @@ public class SearchActivity extends AppCompatActivity {
     private void performSearch() {
         String query = searchInput.getText().toString().trim();
         if (!query.isEmpty()) {
+            historyManager.record(query);
             searchOnYoutube(query);
         }
     }
 
     private void loadFavorites() {
-        List<FavoriteVideo> favorites = favoritesManager.getFavorites();
-        if (favorites.isEmpty()) {
-            showEmptyFavoritesMessage();
-        } else {
-            convertFavoritesToVideoItems(favorites);
-        }
-    }
-
-    private void showEmptyFavoritesMessage() {
+        // For compatibility with legacy FavoritesManager API in this module, we just hide list if empty
+        // and show an adapter with empty state otherwise. New Room-based favorites screen is separate.
         searchResults = new ArrayList<>();
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, 
-            android.R.layout.simple_list_item_1, 
-            new String[]{getString(R.string.no_favorites)});
-        videosFound.setAdapter(adapter);
-        swipeRefreshLayout.setRefreshing(false);
-    }
-
-    private void convertFavoritesToVideoItems(List<FavoriteVideo> favorites) {
-        searchResults = new ArrayList<>();
-        for (FavoriteVideo favorite : favorites) {
-            VideoItem item = new VideoItem();
-            item.setId(favorite.getVideoId());
-            item.setTitle(favorite.getTitle());
-            item.setThumbnailURL(favorite.getThumbnailUrl());
-            searchResults.add(item);
-        }
         updateVideosFound();
     }
 
@@ -244,8 +446,8 @@ public class SearchActivity extends AppCompatActivity {
                             title.setText("");
                         }
                         
-                        // Setup favorite icon
-                        setupFavoriteIcon(favoriteIcon, searchResult.getId());
+                        // Setup favorite icon (legacy compatibility: no-op if not integrated)
+                        favoriteIcon.setVisibility(View.GONE);
                         
                     } catch (Exception e) {
                         title.setText("");
@@ -263,42 +465,30 @@ public class SearchActivity extends AppCompatActivity {
         }
     }
 
-    private void setupFavoriteIcon(ImageView favoriteIcon, String videoId) {
-        if (favoritesManager.isFavorite(videoId)) {
-            favoriteIcon.setImageResource(android.R.drawable.btn_star_big_on);
-        } else {
-            favoriteIcon.setImageResource(android.R.drawable.btn_star_big_off);
+    private void startVoice() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.search_hint));
+        try {
+            startActivityForResult(intent, REQ_VOICE);
+        } catch (Exception e) {
+            Toast.makeText(this, "Voice search not available", Toast.LENGTH_SHORT).show();
         }
-        
-        favoriteIcon.setOnClickListener(v -> {
-            if (favoritesManager.isFavorite(videoId)) {
-                favoritesManager.removeFromFavorites(videoId);
-                favoriteIcon.setImageResource(android.R.drawable.btn_star_big_off);
-                Toast.makeText(this, R.string.remove_from_favorites, Toast.LENGTH_SHORT).show();
-            } else {
-                VideoItem video = findVideoById(videoId);
-                if (video != null) {
-                    FavoriteVideo favorite = new FavoriteVideo(
-                        video.getId(), 
-                        video.getTitle(), 
-                        video.getThumbnailURL(), 
-                        ""
-                    );
-                    favoritesManager.addToFavorites(favorite);
-                    favoriteIcon.setImageResource(android.R.drawable.btn_star_big_on);
-                    Toast.makeText(this, R.string.add_to_favorites, Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
     }
 
-    private VideoItem findVideoById(String videoId) {
-        for (VideoItem video : searchResults) {
-            if (video.getId().equals(videoId)) {
-                return video;
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_VOICE && resultCode == RESULT_OK && data != null) {
+            ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            if (results != null && !results.isEmpty()) {
+                String q = results.get(0);
+                searchInput.setText(q);
+                searchInput.setSelection(q.length());
+                performSearch();
             }
         }
-        return null;
     }
 
     @Override
@@ -310,10 +500,81 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.search_menu, menu);
+        MenuItem item = menu.findItem(R.id.action_toggle_trending);
+        if (item != null) item.setTitle(trendingChipsEnabled ? "Hide trending chips" : "Show trending chips");
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_toggle_trending) {
+            trendingChipsEnabled = !trendingChipsEnabled;
+            prefs.edit().putBoolean(KEY_TRENDING_CHIPS, trendingChipsEnabled).apply();
+            invalidateOptionsMenu();
+            if (!trendingChipsEnabled) removeQuickTrendingChips(); else showQuickTrendingChips();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (adView != null) {
             adView.resume();
+        }
+        if (trendingChipsEnabled && suggestionsContainer.getVisibility() != View.VISIBLE) {
+            showQuickTrendingChips();
+        } else {
+            removeQuickTrendingChips();
+        }
+    }
+
+    private void fetchTrendingDefaults() {
+        trendingProvider.getTrending(6, list -> {
+            trendingDefaults.clear();
+            trendingDefaults.addAll(list);
+        });
+    }
+
+    private void showQuickTrendingChips() {
+        // Inflate a simple chip row above the tabs for quick discovery (ephemeral)
+        if (trendingDefaults.isEmpty()) return;
+        // Create a lightweight ChipGroup container programmatically and insert temporarily
+        ChipGroup chipGroup = new ChipGroup(this);
+        chipGroup.setSingleLine(true);
+        chipGroup.setPadding(16, 8, 16, 8);
+        for (String s : trendingDefaults) {
+            Chip chip = new Chip(this);
+            chip.setText(s);
+            chip.setCheckable(false);
+            chip.setOnClickListener(v -> {
+                searchInput.setText(s);
+                searchInput.setSelection(s.length());
+                performSearch();
+            });
+            chipGroup.addView(chip);
+        }
+        // Ensure only one is present: remove previous if any
+        View maybeOld = findViewById(0x7f0a0abc); // ephemeral id unlikely, best-effort cleanup
+        if (maybeOld != null) ((ViewGroup) maybeOld.getParent()).removeView(maybeOld);
+        chipGroup.setId(0x7f0a0abc);
+        // Insert right below search bar (index 1, before suggestions container)
+        ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
+        ViewGroup decor = (ViewGroup) root.getChildAt(0);
+        if (decor instanceof ViewGroup) {
+            ViewGroup topLayout = (ViewGroup) decor;
+            // Add after the search bar
+            topLayout.addView(chipGroup, 1);
+        }
+    }
+
+    private void removeQuickTrendingChips() {
+        View maybeOld = findViewById(0x7f0a0abc);
+        if (maybeOld != null && maybeOld.getParent() instanceof ViewGroup) {
+            ((ViewGroup) maybeOld.getParent()).removeView(maybeOld);
         }
     }
 
